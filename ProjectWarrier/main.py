@@ -150,7 +150,7 @@ async def set_setting(db: AsyncSession, key: str, value: str):
 
 # Todos
 async def create_todo(db: AsyncSession, todo: TodoCreate) -> Todo:
-    db_todo = Todo(task=todo.task, completed=False)
+    db_todo = Todo(task=todo.task, completed=False, created_at=datetime.now())
     db.add(db_todo)
     await db.commit()
     await db.refresh(db_todo)
@@ -164,11 +164,11 @@ async def update_todo(db: AsyncSession, todo_id: int, todo_data: TodoUpdate) -> 
     db_todo = await db.get(Todo, todo_id)
     if not db_todo:
         return None
-    
+
     update_data = todo_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_todo, key, value)
-        
+
     await db.commit()
     await db.refresh(db_todo)
     return db_todo
@@ -183,7 +183,7 @@ async def delete_todo(db: AsyncSession, todo_id: int) -> bool:
 
 # Reminders (Similar CRUD functions)
 async def create_reminder(db: AsyncSession, reminder: ReminderCreate) -> Reminder:
-    db_reminder = Reminder(task=reminder.task, due_time=reminder.due_time)
+    db_reminder = Reminder(task=reminder.task, due_time=reminder.due_time, created_at=datetime.now())
     db.add(db_reminder)
     await db.commit()
     await db.refresh(db_reminder)
@@ -340,11 +340,11 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)
     model = await get_setting(db, "selected_llm_model")
 
     if not api_key:
-        api_key = "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"
+        api_key = "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"
         # raise HTTPException(status_code=400, detail="OpenRouter API key not set. Please set it in /api/settings.")
     if not model:
         # Use a sensible default if not set
-        model = "openrouter/sherlock-think-alpha"
+        model = "xiaomi/mimo-v2-flash:free"
 
     # 2. Initialize LLM Service
     llm_service = LLMService()
@@ -365,10 +365,12 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)
             return ChatResponse(response="I see you want to add a todo, but I didn't catch the task.", intent=intent, data=intent_data)
         
         new_todo = await create_todo(db, TodoCreate(task=task))
+
+        todo_data = TodoSchema.model_validate(new_todo).model_dump()
         return ChatResponse(
             response=f"I've added '{new_todo.task}' to your to-do list.",
             intent=intent,
-            data=TodoSchema.from_attributes(new_todo).model_dump()
+            data=todo_data
         )
 
     elif intent == "create_reminder":
@@ -377,17 +379,20 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)
         
         if not task or not time_str:
             return ChatResponse(response="I can set a reminder, but I need both a task and a time.", intent=intent, data=intent_data)
-        
+
         try:
             # Parse the ISO format string from the LLM
             due_time = datetime.fromisoformat(time_str)
             new_reminder = await create_reminder(db, ReminderCreate(task=task, due_time=due_time))
+
+            reminder_data = ReminderSchema.model_validate(new_reminder).model_dump()
             return ChatResponse(
                 response=f"OK, I'll remind you to '{new_reminder.task}' at {new_reminder.due_time.strftime('%I:%M %p on %B %d')}.",
                 intent=intent,
-                data=ReminderSchema.from_attributes(new_reminder).model_dump()
+                data=reminder_data
             )
-        except ValueError:
+        except Exception as e:
+            logging.error(f"Failed to create reminder: {e}")
             return ChatResponse(response=f"I couldn't understand the time '{time_str}'. Please try again.", intent=intent, data=intent_data)
 
     elif intent == "iot_control":
