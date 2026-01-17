@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, AsyncGenerator
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 import json
 import logging
 
@@ -14,6 +15,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import select, update, delete
 
+load_dotenv()
 DATABASE_URL = "sqlite+aiosqlite:///./home_ai.db"
 
 # Note: check_same_thread is for SQLite only.
