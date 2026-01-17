@@ -340,7 +340,7 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession = Depends(get_db)
     model = await get_setting(db, "selected_llm_model")
 
     if not api_key:
-        api_key = "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"
+        api_key = "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"
         # raise HTTPException(status_code=400, detail="OpenRouter API key not set. Please set it in /api/settings.")
     if not model:
         # Use a sensible default if not set
