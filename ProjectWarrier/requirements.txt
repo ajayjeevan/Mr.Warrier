@@ -7,3 +7,11 @@ openai
 fastapi-cors
 python-dotenv
 greenlet
+gTTS
+pygame
+requests
+pvporcupine
+pyaudio
+webrtcvad-wheels
+sounddevice
+openai-whisper
